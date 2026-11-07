@@ -83,8 +83,11 @@ When a layer should always export in set ways (design handoff), add settings and
 
 - `css`: custom properties, default mode on `:root`, other modes on `[data-theme="Dark"]`. Ran: `--brand-primary: #1D4ED8;` and the dark value.
 - `dtcg` (default): `{files: [{name: "Colors.Light.tokens.json", collection, mode, tokens}]}`, colours as `{colorSpace, components, hex}`. With `path` it writes a folder, one file per mode.
-- `tailwind`: `{theme: {extend: {colors, ...}}, text}`. In this build the `theme` used `var(--color-primary)` while `text` defined `--brand-primary`; compare both before you ship it.
+- `tailwind`: `{theme: {extend: {colors, ...}}, text}`. `text` is an `@theme static` stylesheet that defines the same `--color-*` names the `theme` values read (an older build defined `--brand-primary` while the theme read `--color-primary`; update FigCraft if you still see that).
 - `json`: the local variables JSON.
+- `dtcg-styles`: text styles as `typography`, effect styles as `shadow`, paint styles as `color`, `gradient` or (under `Border/`, `Stroke/`) `border`, with FigCraft data in `$extensions["com.figcraft"]`; `skipped` lists styles with no DTCG type.
+- `style-dictionary`: a v4 scaffold in `files`: a config and a token file per collection and mode (hex colours, `16px`), plus the styles. `resolver`: `tokens.resolver.json` with modes as modifier contexts, plus the token files.
+- `swift`, `kotlin` (text) and `android` (`values/colors.xml`, `values/dimens.xml`, `values-night/colors.xml`): native constants; the default mode uses the variables' iOS / ANDROID code syntax names. With `path` the multi-file formats write a folder.
 
 `collection` and `modes` narrow the output. `variable.importTokens` reads DTCG back.
 
