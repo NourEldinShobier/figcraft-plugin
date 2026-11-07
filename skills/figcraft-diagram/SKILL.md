@@ -1,15 +1,36 @@
 ---
 name: figcraft-diagram
-description: Draw flowcharts, sequence-style diagrams, ERDs and architecture diagrams in FigCraft as board shapes joined by connectors, laid out left to right and checked with a screenshot. Use when the user says "draw a flowchart", "diagram this flow", "sequence diagram", "ERD", "architecture diagram", "boxes and arrows", or has Mermaid and wants it in FigCraft.
+description: Draw flowcharts, sequence diagrams, ERDs and architecture diagrams in FigCraft from Mermaid text with generate_diagram, or by hand as board shapes joined by connectors, then check with a screenshot. Use when the user says "draw a flowchart", "diagram this flow", "sequence diagram", "ERD", "architecture diagram", "boxes and arrows" or has Mermaid.
 ---
 
 # FigCraft diagrams
 
 Read figcraft-use first for ids vs selection, `batch` with `$ref`, `dryRun` and the verify loop.
 
-FigCraft has no Mermaid, PlantUML or draw.io import (`list_commands {"filter":"mermaid"}` finds nothing) and no auto-layout for diagrams. You place every node at a computed x/y and join them with `board.connector`; the connectors then follow the nodes when they move. Shape and connector commands exist only on boards, so create a board first (`file.newBoard`). `file.import` takes SVG if the user already has a drawing.
+Shape and connector commands exist only on boards, so create a board first (`run_command file.newBoard`). `generate_diagram` draws Mermaid text on a board; for anything it cannot parse, place shapes by hand with `board.shape` and join them with `board.connector`. The connectors follow the nodes when they move. `file.import` takes SVG if the user already has a drawing. There is no PlantUML or draw.io import.
 
-## Procedure
+## Fast path: generate_diagram
+
+```json
+{"mermaid":"flowchart LR
+  A[Open app] --> B{Valid?}
+  B -->|yes| C([Home])
+  B -->|no| D[Show error]
+  D --> A"}
+```
+
+Write the Mermaid yourself from the user's description; the tool does not read prose. It draws one section holding shapes and attached connectors, as one undo step, and returns `{rootId, nodes: [{name, id}], edges: [{from, to, id}], warnings}`. `name` is the Mermaid node id (A, B...). Options: `direction` (TD, TB, LR, RL, BT) overrides the flowchart's own, `x`/`y` place the section, `parent` draws inside a section, `dryRun` previews.
+
+Supported (all of these ran):
+- `flowchart` / `graph` with shapes `[] () {} (()) ([]) [()] [[]] {{}} [/ /] [ ]`, links `-->`, `---`, `-.->`, `==>`, labels as `|text|` or `-- text -->`, chains and nested `subgraph`.
+- `sequenceDiagram` with `participant`/`actor` (`as` aliases), `->>`, `-->>`, `->`, `-->`, notes, `title`, `autonumber`. Lifelines and messages sit on free points, so they do not follow a participant you move later.
+- `erDiagram` with entities, attribute blocks written on separate lines, and relationships such as `||--o{`; the cardinality goes into the connector label.
+
+Styling lines (`classDef`, `style`, `class`, `linkStyle`, `click`) are ignored and listed in `warnings`. Anything else fails with the line number: `A & B --> C` returned `line 3: `&` (several nodes in one statement) is not supported`, an attribute block on one line is refused, and loop/alt blocks in sequence diagrams are errors. Limits: 200 nodes, 500 edges, 100 KB. The layout is layered (ranks by longest path); an edge that skips ranks can run behind a node in between, so look at the result with `screenshot` and move nodes (`set_properties`) where needed. On a design file the tool refuses.
+
+Use the manual procedure below for hand-tuned architecture diagrams, colours per node kind, or constructs the parser refuses.
+
+## Manual procedure
 
 1. Translate the source (Mermaid text, a description, code) into a node list and an edge list. Give every node a short label.
 2. Pick a grid. Nodes 160 x 80, 120 apart horizontally and 100 vertically: column x = `col * 280`, row y = `row * 180`. Flow goes left to right; branches fan out up and down from the decision's right side.

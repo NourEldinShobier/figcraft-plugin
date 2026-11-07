@@ -1,6 +1,6 @@
 ---
 name: figcraft-audit-design
-description: Audits a FigCraft file for token use, text contrast, overflow, icon consistency and layer names, then fixes what it can with a dry run first. Use when the user says "audit this design", "design QA", "check contrast", "find hardcoded colors", "what's overflowing", "lint the icons", "clean up layer names", or "is this accessible".
+description: Audits a FigCraft file for token use, contrast, tap targets, alt text, overlaps and misalignment, overflow, icon consistency and layer names, then fixes what it can with a dry run first. Use when the user says "audit this design", "design QA", "check contrast", "find hardcoded colors", "is this accessible", "are things aligned" or "lint the icons".
 ---
 
 # Audit a design
@@ -14,7 +14,7 @@ Every check is read-only and returns machine-readable fixes. Run all of them, wr
 1. `checkpoint` with a `name` such as `before-audit`.
 2. Run the checks below on the page (or on one frame with `root` / `ids`).
 3. Write the report (format at the end).
-4. Fix in this order: tokens, contrast, overflow, icons, names. Use `dryRun` on each fix, then apply it inside one `batch` with a `label`.
+4. Fix in this order: tokens, contrast, accessibility, layout, overflow, icons, names. Use `dryRun` on each fix, then apply it inside one `batch` with a `label`.
 5. Re-run the same checks. Done when each reports zero, or only items you accepted.
 
 ## Checks and exact calls
@@ -59,6 +59,26 @@ A failure has `ratio`, `requiredRatio`, `apcaLc`, `fg`, `bg`, `fixable`, `sugges
 - One pair: `{"fg":"#767676","bg":"#FFFFFF","fontSize":16}` gives `aa`, `aaa`, `ratio`, `apcaLc`.
 - A text that passes AA can fail AAA (white on `#1D4ED8` is 6.7). Ask which level the user needs; AA is the default.
 
+### Layout: lint_layout
+
+```json
+{"checks":["overlap","misaligned","uneven-gap","tiny-target"]}
+```
+
+Optional `root`, `page` ("all" for every page), `grid` and `limit`; read-only. Result: `{total, listed, truncated?, findings: [{check, ids, message, fix?}]}`. Checks: `overlap` (siblings that intersect, no fix; auto layout children and absolute-positioned layers are skipped), `misaligned` (edges or centres 0.01 to 4 px from a shared line), `uneven-gap` (3 or more layers in a row or column with gaps differing by up to 4 px), `tiny-target` (button-like names or layers with interactions under 24x24, or 44x44 in frames up to 500 wide), `off-grid` (x/y not a multiple of `grid`, default 4). `off-grid` runs only when named, because it flags most free-form designs.
+
+A `fix` is a command you can run as is. Run on two rectangles 2 px apart on the left edge, `{"command":"align.left","params":{"ids":[4,5]}}` cleared the finding. For a tiny target the fix is a `node.set` with width and height 44. Check a fix before applying: a misaligned centre and a misaligned left edge are separate findings for the same pair, and you want only one of them.
+
+### Accessibility: check_accessibility
+
+```json
+{"limit":50}
+```
+
+Optional `root`, `page`. It returns `{issues, checks, details}`: `contrast` (as check_contrast), `targets` (24 px, or 44 px in frames up to 500 wide, for layers with interactions and frames, components or instances named like a button, link, tab, toggle or input), `nonText` (3:1 for a control's boundary and icons; gradients and images count as `unknown`), `alt` and a reading-order count. Each target failure carries a `node.set` fix. Single checks: `a11y.checkTargets`, `a11y.checkNonText`, `a11y.checkAlt`, `a11y.readingOrder` via `run_command`.
+
+Alt text: `set_properties {"ids":[5],"props":{"alt":"Search"}}` stores it (`""` marks decorative, `null` clears) and `get_node` shows `alt`. `a11y.checkAlt` lists images (childless layers with an image fill), vectors and groups whose name says icon, logo, image, photo, illustration or avatar and that have no alt: a group named `icon/search` was listed as missing until alt was set. A plain rectangle named Photo with a solid fill was not checked. `a11y.readingOrder` gives the order a screen reader would use: auto layout order inside auto layout frames, otherwise rows top to bottom, left to right.
+
 ### Colour-blind preview: a11y.simulate
 
 `run_command` `a11y.simulate` with `{"cvd":"deuteranopia","ids":[2],"scale":0.5}` (also protanopia, tritanopia, achromatopsia). Without `path` it returns the PNG as base64 in `data`; pass `path` to write a file.
@@ -98,7 +118,7 @@ Rules in the result: size, stroke-width, stroke-cap, stroke-join, corner-radius,
 
 ## What FigCraft does not check
 
-There is no touch-target check, alt-text field, focus-order check or heading-structure check. For tap targets query sizes: `find_nodes` `{"type":"FRAME","height":{"max":43},"nameGlob":"button*"}` (`width` and `height` take a number or `{min,max}`; `nameGlob` takes `*` and `?`; ran with `name` and `height` and returned the 40 px frame), then judge the list. Say in the report which checks were not available.
+Focus order and heading structure have no check; judge them from `a11y.readingOrder` and the largest text in `summarize_document`. Tap targets are found by name or interaction only: an unnamed 30 px frame that acts as a button is not flagged, so also query sizes with `find_nodes` `{"type":"FRAME","height":{"max":43},"nameGlob":"button*"}`. Say in the report which checks were not available.
 
 ## Pitfalls
 
@@ -111,14 +131,16 @@ There is no touch-target check, alt-text field, focus-order check or heading-str
 Audit: <file / page>, <date>
 Checkpoint: before-audit
 Tokens:   N hardcoded -> N bound            (ids ...)
+A11y:     N issues -> 0                     (targets, non-text, alt)
+Layout:   N findings -> 0                   (check, ids)
 Contrast: N failing AA -> 0                 (id, ratio, fix)
 Overflow: N items -> 0                      (id, kind, detail)
 Icons:    N issues -> 0                     (rule, id)
 Names:    N generic -> N                    (renamed list)
-Not checked: touch targets, alt text, focus order
+Not checked: focus order, heading structure
 Left for the user: <items with reason>
 ```
 
 ## Verify
 
-Run `audit_tokens`, `check_contrast`, `inspect.overflow`, `lint_icons` again and `screenshot` the changed frames. `undo` steps back one batch; `restore_version` with the checkpoint id and `"confirm":true` returns to the start.
+Run `audit_tokens`, `check_contrast`, `check_accessibility`, `lint_layout`, `inspect.overflow`, `lint_icons` again and `screenshot` the changed frames. `undo` steps back one batch; `restore_version` with the checkpoint id and `"confirm":true` returns to the start.

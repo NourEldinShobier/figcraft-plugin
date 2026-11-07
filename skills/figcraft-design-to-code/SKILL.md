@@ -18,16 +18,36 @@ FigCraft also ships an MCP prompt for this: `design_to_code` with arguments `fra
 3. **Look at it.** `screenshot {"ids": [10]}` and read the image before writing code. Compare with the same screenshot after the implementation renders.
 4. **Linked components.** `get_code_connect_map {"language": "react"}` lists design components that already have code. For each instance in the frame, `get_code_connect_map {"id": <instance id>}` returns its `connected.import` line and snippet. Use those lines; do not rebuild the component. No link means the project may still have a matching component: search the repo by the component's name before writing a new one.
 5. **Tokens.** `get_variable_defs {"nodeId": 10}` returns `{name: value}` for every variable the layer and its descendants use, resolved in the layer's mode. `audit_tokens {"root": 10}` lists literal colours that equal a variable's default value; write those as the token, not the hex.
-6. **Reference code.** `get_design_context {"nodeId": 10, "language": "react"}` returns `code`, `properties` (each row can carry a `token` name), `variables`, `assets` and an `outline`. `language` is any value `inspect.code` takes: `html` (default; HTML plus CSS), `css`, `react`, `tailwind`, `vue`, `leptos`, `swiftui`, `compose`, `flutter`, `arkui`. Output over 60,000 characters is cut and `codeTruncated` is true: request sub-frames instead.
+6. **Reference code.** `get_design_context {"nodeId": 10, "language": "react"}` returns `code`, `properties` (each row can carry a `token` name), `variables`, `assets`, an `outline` and the extras listed below. `language` is any value `inspect.code` takes: `html` (default; HTML plus CSS), `css`, `react`, `tailwind`, `vue`, `leptos`, `swiftui`, `compose`, `flutter`, `arkui`. Output over 60,000 characters is cut and `codeTruncated` is true: request sub-frames instead.
 7. **Adapt.** Map tokens to the project's token system, replace markup with the project's components, keep the layout numbers. See "What the generated code looks like".
 8. **Assets.** `run_command {"command": "inspect.assets", "params": {"ids": [10]}}` lists layers with export settings, icons and images, each with a `kind`. Export what the code needs with `export {"ids": [id], "format": "svg"}` (or png with `scale`), or `export_many` for a set.
 9. **Check.** Render the result and compare with the screenshot. Then `check_contrast {"ids": [11]}` on text layers and, for icon frames, `lint_icons {"ids": [<icon-set frame>]}`. List anything in the design the code could not express.
+
+## Extras: include
+
+`include` takes one name, a list or `"all"`; the default is everything except `comments` and `interactions`. Unknown names fail with the list of valid ones.
+
+| Name | Content |
+|---|---|
+| `instances` | `{id, componentName, mainId, codeConnect?: {importPath, name, snippet}}` for each instance below the layer |
+| `bindings` | per layer and property: `{variable, collection, value, css}`; `css` is `var(--surface-default, #FFFFFF)`, write that, not the hex |
+| `annotations` | the designer's notes on layers (`annotation.add`) |
+| `devResources` | links attached to layers, inherited ones for instances |
+| `status` | the root layer's ready-for-dev status |
+| `comments`, `interactions` | open comment threads in the subtree; prototype triggers and actions |
+| `hints` | what to do first: mapped components, then tokens, then raw values |
+
+Each list is capped at 100 entries; a `truncated` field names the lists that were cut. A linked instance already appears as its component call in `code`. If the file stores design guidelines, they come first in `hints`; read them in full with `get_design_guidelines`, and follow them.
+
+To turn a whole file's conventions into a rules file for the repo, use the MCP prompt `create_design_system_rules` (argument `target`, default `AGENTS.md`). It reads variables, styles, components, Code Connect and the stored guidelines, writes the file, and offers to store a summary with `run_command` `library.setGuidelines {text}` (up to 20 KB) after you agree.
 
 ## Calls that were run
 
 ```json
 ["get_metadata", {"nodeId": 10}]
 ["get_design_context", {"nodeId": 10, "language": "react"}]
+["get_design_context", {"nodeId": 10, "include": ["bindings", "annotations"]}]
+["get_design_guidelines", {}]
 ["run_command", {"command": "inspect.code", "params": {"id": 10, "language": "tailwind"}}]
 ["run_command", {"command": "inspect.code", "params": {"id": 10, "language": "css", "unit": "rem"}}]
 ["audit_tokens", {"root": 10}]

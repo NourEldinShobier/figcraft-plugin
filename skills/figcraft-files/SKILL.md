@@ -1,6 +1,6 @@
 ---
 name: figcraft-files
-description: Create, open and save FigCraft files, work in several documents at once, copy layers between files, and use versions (checkpoint, compare, restore). Explains headless vs attached and auto-save. Use when the user says "new file", "open this .figcraft", "save", "work in two files", "copy this screen to the other file", "make a checkpoint", "go back to the earlier version" or "what changed since".
+description: Create, open and save FigCraft files, work in several documents at once, copy layers between files, summarize a file, and use versions (checkpoint, compare, diff, restore). Explains headless vs attached and auto-save. Use when the user says "new file", "open this .figcraft", "save", "work in two files", "copy this screen to the other file", "make a checkpoint", "go back to the earlier version" or "what changed since".
 ---
 
 # figcraft-files
@@ -80,6 +80,21 @@ Versions live inside the file and persist once the file is saved.
 5. `list_versions {}` lists them oldest first (default 30).
 
 A checkpoint does not write the file; call `save_file` for that.
+
+## Orient and diff
+
+`summarize_document {"budgetTokens":2000}` is the first read in an unfamiliar file. It returns `counts` (pages, layers, components, instances, styles, variables), per page the top-level frames with `w`, `h`, `kids`, `layers` (the current page first), the largest text as `headings`, repeated element `families`, and `drill`, a list of the next calls. It fits the budget (100 to 50000) by showing less: `level` rises (0 is the most detail), `moreFrames`, `morePages`, `moreHeadings` and `moreFamilies` count what was left out, and `overBudget` is set if even the smallest level does not fit. With `budgetTokens: 300`, a six-layer file still listed its frame and heading.
+
+`diff_documents` compares structure across files or versions, read-only:
+
+```json
+{"version":"1a1b494164a"}
+{"a":1,"b":2,"limit":50}
+```
+
+- `version` (an id from `list_versions`) against the current file: layers match by id. Result: `counts {added, removed, moved, changed}`, `changed: [{id, path, type, changes: [{prop, old, new}]}]` (a rename and a width change on one frame came back as `name` and `width` rows), `added`/`removed` (top layer of each subtree, with a `layers` count), `moved: [{from, to}]`, `identical`.
+- `a` and `b` (document ids from `doc.list`; `b` defaults to the file in front) compare two files: layers match by page and name path. `changed` rows then carry `idInA`.
+- At most 8 properties per layer (`moreProps`), values clipped to 80 characters, `limit` 50 by default (max 1000) with `truncated`. Z-order changes are not reported. For every property of one frame use `compare_version`.
 
 ## Procedure for a typical task
 

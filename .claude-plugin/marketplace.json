@@ -7,7 +7,7 @@
       "name": "figcraft",
       "source": "./",
       "description": "Skills for designing with FigCraft through its MCP server.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

@@ -102,6 +102,7 @@ A path with no extension is a folder: `design.jsonl` (one sorted JSON object per
 ### Looking at results
 
 - `screenshot` `{"ids":[2],"scale":3,"maxSize":400}` returned a 400x267 image: `scale` is reduced to fit `maxSize` (default 1600). No `ids` renders the current page.
+- `screenshot` with `marks` draws numbered badges on layers and returns the legend, so you can refer to parts of a screen by number: `{"ids":[2],"marks":true,"markDepth":1}` gave `marks: {style, badges: [{badge, id, name}]}` with one badge for the frame and one per direct child. `marks` can be `{ids, style, limit}`: `style: "id"` prints layer ids instead of 1, 2, 3; `limit` defaults to 60 (max 200) and a `truncated` note says how many were marked. `markDepth` is 0 to 5 (default 1; 0 marks only the layers themselves). Hidden layers and layers outside the picture get no badge, and `marks` is ignored with `window: true`. The badge number is not the layer id unless `style` is `id`.
 - `contact_sheet` `{"ids":[2,4,5,7],"columns":2}` renders each layer on its own into one PNG with numbers, plus a legend `{frames: [{index, id, name, width, height}]}`. At most 64 layers; `scale` defaults to 0.25 and `maxSize` to 2400, and the scale is lowered when the sheet would pass `maxSize`. Use it to review every screen in one image.
 - `cvd` on `screenshot` or `export` (PNG only) shows deuteranopia, protanopia, tritanopia or achromatopsia.
 

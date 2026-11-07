@@ -5,7 +5,7 @@ description: Foundation for driving FigCraft through its MCP tools: which tool t
 
 # figcraft-use
 
-FigCraft has no script-execution tool (unlike Figma's `use_figma`). You work with about 46 tools; the generic ones are `create_node`, `set_properties`, `find_nodes`, `get_node`, `get_nodes`, `screenshot`, `batch` and `run_command`. Every menu item, panel action and shortcut is a command with an id (`node.set`, `layout.add`, `comment.reply`). Find ids with `list_commands`, run them with `run_command` or `batch`.
+FigCraft has no JavaScript execution tool like Figma's `use_figma`; for loops and conditions use `run_script` (Rhai, see figcraft-scripting). You work with about 54 tools; the generic ones are `create_node`, `set_properties`, `find_nodes`, `get_node`, `get_nodes`, `screenshot`, `batch` and `run_command`. Every menu item, panel action and shortcut is a command with an id (`node.set`, `layout.add`, `comment.reply`). Find ids with `list_commands`, run them with `run_command` or `batch`.
 
 ## When to use
 
@@ -15,10 +15,12 @@ Any read or write on a FigCraft document. The other figcraft skills assume you k
 
 | Need | Tool |
 |---|---|
-| Which commands exist | `list_commands {"filter": "layout."}` (takes only `filter`, no `limit`; at most 400 are listed) |
+| Which commands exist | `list_commands {"filter": "layout.", "limit": 50, "offset": 0}` (default 400 per page; a note says how many are left) |
+| Orient in an unfamiliar file | `summarize_document` (counts, frames per page, headings, repeated families, within `budgetTokens`) |
 | One new layer | `create_node` |
 | Change layers | `set_properties` with `ids`, `where` or `list` |
 | Anything else (components, variables, styles, comments, pages) | `run_command {command, params}` |
+| Loops, conditions, bulk edits in one undo step | `run_script` (figcraft-scripting) |
 | Several steps as one undo step | `batch` |
 | Find layers | `find_nodes` (ids; `details: true` adds geometry) |
 | Outline of many layers | `get_nodes` |
@@ -31,7 +33,7 @@ Any read or write on a FigCraft document. The other figcraft skills assume you k
 ## Rules that cause most mistakes
 
 1. Coordinates: x right, y down, page units. `create_node` and `set_properties` take x/y relative to the parent (page coordinates when there is no parent). `absoluteBounds` in results is in page coordinates. Confirmed: a chip at x 10, y 20 in a frame at 500, 300 reports `absoluteBounds` x 510, y 320.
-2. Ids are integers and belong to one document. Two open documents can both have a layer 2. Pass `document` whenever more than one is open.
+2. Ids are integers and belong to one document. Anywhere an id is accepted you can also write `"#12"` or `"figcraft://node/12"` (both ran). Two open documents can both have a layer 2. Pass `document` whenever more than one is open.
 3. Children of an auto layout frame are placed by the layout. Set `layout`, `gap`, `padding`, `mainAlign`, `crossAlign` (`min|center|max|baseline`) and `sizingH`/`sizingV` (`fixed|hug|fill`) instead of x/y. `crossAlign: "stretch"` is rejected; make the children `sizingH: "fill"`.
 4. A frame created with `layout` and no size is a fixed 100 px frame. Pass `sizingH` and `sizingV` as `"hug"` to wrap content.
 5. New layers become the selection, and commands without `ids` act on the selection, which may be the user's. Always pass `ids`, `where` or `list`. Add `keepSelection: true` to leave the user's selection alone.
@@ -111,10 +113,15 @@ After every write:
 3. `screenshot {"ids":[4],"scale":0.5}` of the frame you changed, not the whole page.
 4. For text, `check_contrast {}` returns `{checked, passed, failures}`.
 
+## Stale reads: rev and ifRev
+
+`get_node`, `inspect_document`, `find_nodes` and `get_selection` put a `rev` at the top of their result. Pass it back as `ifRev` on `set_properties`, `run_command`, `batch`, `create_node`, `propagate_change` or `run_script`. If anything changed the document since (you, the user, another agent, even undo), nothing is applied and the error reads `stale: you read revision 1, the document is at 2 (1 command since); nothing was changed. latest undo steps ...`. Re-read and retry. A successful guarded `set_properties` returns the new `rev` to chain the next write. The counter also moves on selection and view commands, so a stale error can be a false alarm; it never lets a stale write through. `ifRev` cannot be combined with `documents`.
+
 ## Pitfalls
 
-- `list_commands` has no `limit`; narrow the `filter` instead.
+- `list_commands` pages: `limit` and `offset` walk past the first 400, and a `filter` narrows first.
+- `diff_documents` and `compare_version` show what changed since a version (figcraft-files).
 - `screenshot` takes `ids`, not `where`. Resolve ids with `find_nodes` first.
 - A bad value fails the call and changes nothing: `node.set` with `x: "bad"` returns `x must be a number`.
 - With no FigCraft window running the server is headless: `diagnostics` shows `attached: false` and edits live in memory until you save (figcraft-files).
-- No loops or scripts: build repeated structure with `batch`, `edit.duplicate` and `node.adjust`.
+- Loops and conditions need `run_script` (figcraft-scripting); a fixed list of steps is a `batch`. `batch` has no loops: repeat structure with `edit.duplicate` and `node.adjust`.

@@ -1,7 +1,7 @@
 {
   "name": "figcraft",
   "description": "Skills for designing with FigCraft through its MCP server: build screens and design systems, carry a change across screens, audit tokens and contrast, connect components to code, and more.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "NourEldinShobier" },
   "homepage": "https://github.com/NourEldinShobier/figcraft-plugin",
   "repository": "https://github.com/NourEldinShobier/figcraft-plugin",
