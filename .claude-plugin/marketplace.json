@@ -1,5 +1,6 @@
 {
   "name": "figcraft",
+  "description": "Skills for designing with FigCraft through its MCP server.",
   "owner": { "name": "NourEldinShobier" },
   "plugins": [
     {
