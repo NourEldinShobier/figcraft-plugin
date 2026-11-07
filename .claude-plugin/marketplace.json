@@ -1,0 +1,12 @@
+{
+  "name": "figcraft",
+  "owner": { "name": "NourEldinShobier" },
+  "plugins": [
+    {
+      "name": "figcraft",
+      "source": "./",
+      "description": "Skills for designing with FigCraft through its MCP server.",
+      "version": "0.1.0"
+    }
+  ]
+}
