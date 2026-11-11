@@ -58,7 +58,16 @@ To change a note's text after creating it: `node.set {"id": <text id>, "props": 
 
 ## Read a board back
 
-FigCraft has no dedicated board export; use the generic readers.
+`get_board {}` returns the whole board as compact JSON; it works on boards only (on a design file it fails with `this is for boards`). Read-only. Ran on a section with two stickies, a connector and a table:
+
+```json
+{"summary":{"sections":1,"stickies":2,"connectors":1,"tables":1,"shapes":0,"texts":0,"stamps":0,"ink":0},
+ "sections":[{"id":2,"name":"Went well","items":[{"id":3,"type":"sticky","text":"Fast deploys","color":"green","x":20,"y":40,"width":200,"height":200}]}],
+ "connectors":[{"id":7,"from":3,"to":5,"label":"then","fromText":"Fast deploys","toText":""}],
+ "tables":[{"id":10,"rows":[["Owner","Task"],["Ada","Ship"]],"section":null}]}
+```
+
+Items carry `id`, `type` (sticky, shape, text, stamp), `text`, `color`, `x`, `y`, `width`, `height`; shapes also `shape`. `from` and `to` of a connector are layer ids or `{x, y}`. Items outside any section come first with `id` and `name` null. `limit` (default 300 per list, up to 5000) cuts each list and `truncated` says what was left out; `summary` always counts everything. `page` picks a page. For summarizing or clustering a board it is the first read; use the generic readers below when you need the layer tree.
 
 - `get_metadata {}` gives an outline: sections, `Sticky` frames with their text as a child, connectors named `Connector`, labels named `Label`. It does not show colors or the `board` field.
 - `get_nodes {"where":{"name":"Sticky"},"fields":["name","board","x","y","width","height"],"depth":2}` returns each sticky with its text layer. Use `{"name":"Connector"}` for connectors: `board.from` and `board.to` give the joined ids, sides and routing.

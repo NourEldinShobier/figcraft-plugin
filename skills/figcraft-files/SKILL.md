@@ -85,6 +85,10 @@ A checkpoint does not write the file; call `save_file` for that.
 
 `summarize_document {"budgetTokens":2000}` is the first read in an unfamiliar file. It returns `counts` (pages, layers, components, instances, styles, variables), per page the top-level frames with `w`, `h`, `kids`, `layers` (the current page first), the largest text as `headings`, repeated element `families`, and `drill`, a list of the next calls. It fits the budget (100 to 50000) by showing less: `level` rises (0 is the most detail), `moreFrames`, `morePages`, `moreHeadings` and `moreFamilies` count what was left out, and `overBudget` is set if even the smallest level does not fit. With `budgetTokens: 300`, a six-layer file still listed its frame and heading.
 
+`design_system_index` is the matching read for the design system: components, styles and variables with usage counts (figcraft-generate-library).
+
+For the new problems and the changed frames since a checkpoint, use `check_changes` and `visual_diff` (figcraft-bulk-edits); their `since` is the version `id` or its integer index from `list_versions`, not the name.
+
 `diff_documents` compares structure across files or versions, read-only:
 
 ```json

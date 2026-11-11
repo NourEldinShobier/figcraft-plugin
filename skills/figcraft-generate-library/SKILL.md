@@ -98,6 +98,8 @@ Everything under the frame, instances included, now resolves in Dark. `mode: nul
 
 ## Verify
 
+- `design_system_index {}` is the compact inventory: components (sets list their variant property names), styles and variables with `usageCount` and `unused`, variable collections with their modes, and totals. `kinds` picks `components`, `styles` or `variables`; `query` filters by name or description; `unusedOnly: true` lists clean-up candidates; `limit` (default 50, max 500) cuts each list with `truncated`. In a test a variable nothing was bound to showed `unused: true, usageCount: 0` and a component with no instances the same, until an instance was made. The `libraries` section counts, per enabled library, how many assets already copied into this file are used; it does not list assets that were never imported (use `search_design_system` for those).
+
 - `get_variable_defs {"nodeId": <doc frame>}` returns the values as resolved in the frame's mode: in the Dark docs frame `surface/default` is `#111111`.
 - `audit_tokens {}` returns `hardcoded: []` when every colour that equals a variable's default value is bound. A hit lists a `fixes` entry that is a ready `variable.bind`.
 - `check_contrast {}` checks every text layer against what is behind it, once per mode when the colours are variables; `failures: []` means AA passes in Light and Dark.

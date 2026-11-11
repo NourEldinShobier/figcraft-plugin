@@ -13,7 +13,7 @@ Pick the tool by what leaves FigCraft:
 |---|---|
 | One layer or a composite, one format | `export` |
 | Many layers x formats x scales | `export_many` |
-| Whatever has export settings on the layers | `file.exportLayers` (via `run_command`) |
+| Whatever has export settings on the layers | `export_assets` |
 | Variables as tokens | `export_tokens` |
 | Whole file as text for git | `export_source` |
 | Look at a design | `screenshot`, `contact_sheet` |
@@ -106,9 +106,29 @@ A path with no extension is a folder: `design.jsonl` (one sorted JSON object per
 - `contact_sheet` `{"ids":[2,4,5,7],"columns":2}` renders each layer on its own into one PNG with numbers, plus a legend `{frames: [{index, id, name, width, height}]}`. At most 64 layers; `scale` defaults to 0.25 and `maxSize` to 2400, and the scale is lowered when the sheet would pass `maxSize`. Use it to review every screen in one image.
 - `cvd` on `screenshot` or `export` (PNG only) shows deuteranopia, protanopia, tritanopia or achromatopsia.
 
+## Saved export settings: export_assets
+
+Set them once, then write everything in one call. A setting is a size, suffix and format per layer:
+
+```json
+{"command":"export.add","params":{"ids":[2],"setting":{"size":"2x","suffix":"@2x","format":"png"}}}
+{"command":"export.add","params":{"ids":[5],"setting":{"format":"svg"}}}
+```
+
+```json
+{"dir":"C:/path/out","root":2}
+```
+
+`export_assets` writes every layer under `root` (default the page) that has settings, once per setting, named `<layer><suffix>.<format>` (`Screen A@2x.png`, `Row.svg`), plus `manifest.json`. Result: `{dir, written, files: [{name, id, format, scale, bytes, path}], manifest}`. A `/` in a layer name makes folders. Facts from runs:
+
+- It creates `dir` when it does not exist.
+- An existing file of the same name is an error and nothing is written (`already in dir: Screen A@2x.png, manifest.json (pass overwrite: true)`); `overwrite: true` replaces.
+- `limit` (default and maximum 200) is not a page size: more files than `limit` is an error (`2 files would be written, over the limit of 1: pass a smaller root`). Narrow with `root`.
+- `dir` must be inside the write root, below.
+
 ## Write root
 
-The server may be started with `--automation-write-root DIR`. Then writes outside DIR fail with `automation path rejected: <path> is outside the folders that may be written: <DIR>`, for `export {path}` and `export_many {dir}` (both confirmed); the docs list `save_file` and `open_file` too. Read the folder from the error or the server's `initialize` instructions and write there. Without that flag any path is allowed. With only a read root nothing can be written; export without `path` instead.
+The server may be started with `--automation-write-root DIR`. Then writes outside DIR fail with `automation path rejected: <path> is outside the folders that may be written: <DIR>`, for `export {path}` and `export_many {dir}` (both confirmed; `export_assets {dir}` has the same rule); the docs list `save_file` and `open_file` too. Read the folder from the error or the server's `initialize` instructions and write there. Without that flag any path is allowed. With only a read root nothing can be written; export without `path` instead.
 
 ## When a result is too large
 
@@ -122,7 +142,7 @@ The server may be started with `--automation-write-root DIR`. Then writes outsid
 - `export` with no `ids` uses the selection, else every top-level layer of the page. Always pass `ids`.
 - Windows paths: forward slashes work. `export_many` results print `dir\icon/search.svg`, mixed separators, all valid.
 - `iconPreset` bakes transforms and uses the layer's box as `viewBox`; a frame with extra padding gives an SVG with that padding.
-- Export settings on layers (`export.add`) do not apply to `export` and `export_many`; they apply to `file.exportLayers`.
+- Export settings on layers (`export.add`) do not apply to `export` and `export_many`; they apply to `export_assets` (and `file.exportLayers`).
 
 ## Verify
 

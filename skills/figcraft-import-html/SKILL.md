@@ -1,6 +1,6 @@
 ---
 name: figcraft-import-html
-description: Turns static HTML and CSS into editable FigCraft layers with import_html, mapping flow and flexbox to auto layout, and reading the warnings for what was dropped. Use when the user has a web page or snippet and says "import this HTML", "bring this page into FigCraft", "turn this markup into a design" or "convert this landing page".
+description: Turns static HTML and CSS into editable FigCraft layers with import_html, mapping flow, flexbox, grid and absolute positioning to layout, and reading the warnings for what was dropped. Use when the user has a web page or snippet and says "import this HTML", "bring this page into FigCraft", "turn this markup into a design" or "convert this landing page".
 ---
 
 # Import HTML
@@ -23,6 +23,11 @@ Result: `{rootId, created, warnings, truncated?}`. The root is a frame as wide a
 
 - Block flow becomes a vertical auto layout frame. `display: flex` becomes auto layout with `flex-direction`, `gap`, `justify-content`, `align-items`, `flex-wrap` and `flex-grow`. In the call above `div.nav` came out horizontal with `mainAlign: spaceBetween` and padding 16, and `a.btn` vertical with padding 10/16.
 - Text becomes text layers; inline bold, italic, colour, size and underline become ranges.
+- `display: grid` becomes a grid layout frame. Columns and rows take px, em, rem, `fr`, `auto` and `repeat(n, ...)`; `gap` carries over. `grid-template-columns: repeat(3,1fr)` came out as `mode: grid` with three `fill` column tracks.
+- `position: absolute` becomes an absolute child with constraints from `top`, `right`, `bottom` and `left`: a badge at `top:8px; right:8px` came out `absolute: true` with constraints right and top.
+- A flex row stretches its items to equal height: two `flex:1` cards with different text both came out 73 high with `sizing.vertical: fill`.
+- `@media` blocks with `min-width` and `max-width` apply against the `width` you pass: a `max-width:600px` rule changed a three-column grid to two columns at `width: 480`, and did nothing at `800`.
+- `:first-child`, `:last-child` and `:nth-child(n)` selectors work. Siblings include a `<style>` element in the same parent, as in a browser.
 - Sizes: width, height, min and max in px, % and em. Margins become padding frames; `margin: auto` centres.
 - Paint: background colour, simple `linear-gradient`, borders, border radius, `box-shadow`, opacity, overflow.
 - `<style>` blocks and `style` attributes apply, with tag, `.class`, `#id` and descendant selectors, specificity, `!important` and custom properties with `var()`.
@@ -30,24 +35,25 @@ Result: `{rootId, created, warnings, truncated?}`. The root is a frame as wide a
 
 ## What does not
 
-Each unsupported feature is listed once in `warnings`. A page with a media query, a remote image and a grid returned:
+Each unsupported feature is listed once in `warnings`. A page with a print media query, named grid areas, a transform, a `calc` width and a remote image returned:
 
 ```
-at-rule @media is not supported (skipped)
+media query `print` is not supported (skipped; only min-width and max-width work)
+property `grid-template-areas` is not supported (ignored)
+property `transform` is not supported (ignored)
+`width: calc(100% - 10px)` is not supported (ignored)
 <img> without a data: URI is not fetched (drawn as a placeholder rectangle)
-property `grid-template-columns` is not supported (ignored)
-display: grid is not supported (laid out as a block)
 ```
 
-Also unsupported: positioning, transforms, `calc`, pseudo-selectors, remote stylesheets and list markers. Video, canvas, iframes and form controls become grey rectangles.
+Selectors other than tag, `.class`, `#id`, descendant, `:first-child`, `:last-child` and `:nth-child(n)` skip the rule with a warning (`:hover`, `::before` and `:not()` did). `minmax()` tracks use their maximum, also warned. Remote stylesheets and list markers are not supported. Video, canvas, iframes and form controls become grey rectangles.
 
-Limits: 5000 layers (then `truncated: true`), 2 MB, 100 distinct warnings. Flex items stretch to equal height only when the container has a fixed height.
+Limits: 5000 layers (then `truncated: true`), 2 MB, 100 distinct warnings.
 
 ## Procedure
 
 1. Run with `dryRun: true` when the source is large, and read `warnings`.
 2. Import, then `screenshot` the `rootId` and compare with the page in a browser.
-3. Rebuild grid areas by hand as auto layout frames (figcraft-generate-design).
+3. Rebuild what the warnings list as dropped by hand, for example named grid areas as nested auto layout or grid frames (figcraft-generate-design).
 4. Replace placeholders with the real images.
 5. If the file has variables, run `audit_tokens` and bind literal colours (figcraft-audit-design).
 6. `undo` removes the whole import.

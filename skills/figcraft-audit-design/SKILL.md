@@ -1,6 +1,6 @@
 ---
 name: figcraft-audit-design
-description: Audits a FigCraft file for token use, contrast, tap targets, alt text, overlaps and misalignment, overflow, icon consistency and layer names, then fixes what it can with a dry run first. Use when the user says "audit this design", "design QA", "check contrast", "find hardcoded colors", "is this accessible", "are things aligned" or "lint the icons".
+description: Audits a FigCraft file for token use, contrast, tap targets, alt text, overlaps and misalignment, overflow, icon consistency and layer names, then fixes what it can (contrast with fix_contrast) with a dry run first. Use when the user says "audit this design", "design QA", "check contrast", "find hardcoded colors", "is this accessible", "are things aligned" or "lint the icons".
 ---
 
 # Audit a design
@@ -58,6 +58,21 @@ A failure has `ratio`, `requiredRatio`, `apcaLc`, `fg`, `bg`, `fixable`, `sugges
 - `unknown` lists text over gradients, images or blended fills. Check those by eye or with a pair.
 - One pair: `{"fg":"#767676","bg":"#FFFFFF","fontSize":16}` gives `aa`, `aaa`, `ratio`, `apcaLc`.
 - A text that passes AA can fail AAA (white on `#1D4ED8` is 6.7). Ask which level the user needs; AA is the default.
+
+### Contrast fixes: fix_contrast
+
+Fixes every failing text in one undo step instead of one `set_properties` per layer. Preview first:
+
+```json
+{"ids":[3,4],"dryRun":true}
+```
+
+Each failing text gets the nearest colour with the same hue and saturation that reaches the ratio, in every variable mode. Ran on a `#999999` title (24 px, white background): `changed: [{id:3, changed:"text", from:"#999999", to:"#949494", ratio:3.03, required:3.0}]`, and `check_contrast` then returned no failures. Options: `level` (AA default), `ids` or `root` (default the whole page), `prefer`.
+
+- Text bound to a colour variable is never unbound. It comes back in `skipped` with `reason` and `variable` (`the text colour is bound to variable muted; change that variable's value, or unbind it`). Fix it with `variable.set`, as above.
+- `prefer: "background"` changes the plain solid layer behind the text instead. That layer is often the frame, so every other text on it changes background too: in a test the title passed and the body text on the same frame then failed. Re-run `check_contrast` after it, or keep the default.
+- `unknown` lists text over gradients and images, which cannot be fixed automatically.
+- After a batch of fixes, `check_changes` (figcraft-bulk-edits) reports contrast, target size, layout and overflow problems that appeared since a checkpoint, which catches side effects.
 
 ### Layout: lint_layout
 
@@ -143,4 +158,4 @@ Left for the user: <items with reason>
 
 ## Verify
 
-Run `audit_tokens`, `check_contrast`, `check_accessibility`, `lint_layout`, `inspect.overflow`, `lint_icons` again and `screenshot` the changed frames. `undo` steps back one batch; `restore_version` with the checkpoint id and `"confirm":true` returns to the start.
+Run `check_changes` with the audit checkpoint as `since` for what is new, then `audit_tokens`, `check_contrast`, `check_accessibility`, `lint_layout`, `inspect.overflow`, `lint_icons` again and `screenshot` the changed frames. `undo` steps back one batch; `restore_version` with the checkpoint id and `"confirm":true` returns to the start.

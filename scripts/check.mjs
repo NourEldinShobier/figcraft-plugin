@@ -46,9 +46,9 @@ for (const [skillsDir, name] of entries) {
     for (const l of text.matchAll(/\]\((?!https?:|#|mailto:)([^)\s]+)\)/g)) {
       if (!existsSync(join(dir, l[1].split("#")[0]))) errs.push(`broken link ${l[1]}`);
     }
-    for (const r of new Set(text.match(/\bfigcraft-[a-z-]+\b/g) || [])) {
+    for (const r of new Set(text.match(/\bfigcraft-[a-z0-9-]+\b/g) || [])) {
       if (["figcraft-cli","figcraft-server"].includes(r) || r === "figcraft-plugin" || r === "figcraft-plugin.json") continue;
-      if (/^figcraft-[a-z-]+$/.test(r) && !skillDirs.some((d) => existsSync(join(d, r))) && !/^figcraft-(cli|plugin)/.test(r) && !/^figcraft-connect/.test(r))
+      if (/^figcraft-[a-z0-9-]+$/.test(r) && !skillDirs.some((d) => existsSync(join(d, r))) && !/^figcraft-(cli|plugin)/.test(r) && !/^figcraft-connect/.test(r))
         errs.push(`unknown skill ref ${r}`);
     }
   }

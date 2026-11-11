@@ -5,7 +5,7 @@ description: Carries one design change to the same element on every other screen
 
 # Apply a change everywhere
 
-Read figcraft-use first for ids vs selection, `batch` with `$ref`, `dryRun` and the verify loop.
+Read figcraft-use first for ids vs selection, `batch` with `$ref`, `dryRun` and the verify loop. For edits that are not "copy this layer's look to its twins" (swap a component everywhere, replace a colour, fill instances from data, change many layers by a rule) and for the checkpoint, cap, check and revert steps around any large write, use figcraft-bulk-edits.
 
 FigCraft groups repeated elements into families. You change one layer, ask which layers are its twins, preview the copy, then confirm. Nothing is written until `confirm: true`.
 
@@ -101,12 +101,13 @@ Force specific layers regardless of score:
 - `propagate_change` with a `from` that does not exist is an error (`no such node 9999`). With no twins it returns `twins: 0` and changes nothing.
 - Explicit `ids` skip the score check entirely.
 - The preview is `dryRun`; the real call is a separate one. If the layers changed between them, preview again.
+- `propagate_change` takes `maxAffected` (default 200); a copy that would reach more layers is refused until you raise it. Pass the number you expect.
 
 ## Undo
 
 - `propagate_change` with `confirm` is one undo step: `undo` reverts all twins at once (confirmed: twin 9 went back to its old fill).
 - `undo` takes `document` for multi-file edits. Undoing in one file leaves the other changed.
-- Before a large multi-screen edit call `checkpoint` with a `name`; `restore_version` with the returned `id` and `"confirm":true` goes back, and is itself undoable.
+- Before a large multi-screen edit call `checkpoint` with a `name`; `restore_version` with the returned `id` and `"confirm":true` goes back, and is itself undoable. Afterwards `check_changes` and `visual_diff` with that checkpoint as `since` list new problems and the frames whose pixels changed (figcraft-bulk-edits).
 
 ## Verify
 

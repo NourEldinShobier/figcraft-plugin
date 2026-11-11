@@ -1,11 +1,11 @@
 ---
 name: figcraft-use
-description: Foundation for driving FigCraft through its MCP tools: which tool to pick, coordinates, auto layout, ids vs selection, where/list/dryRun, batch with $ref steps, undo, checkpoints, cheap reads and the verify loop. Use when the user asks to create, edit, inspect or fix anything in a FigCraft file, or before using any other figcraft skill.
+description: Foundation for driving FigCraft through its MCP tools: which tool to pick, tool profiles, coordinates, auto layout, ids vs selection, where/list/dryRun, batch with $ref, assert and preview, undo, checkpoints, cheap reads and the verify loop. Use when the user asks to create, edit, inspect or fix anything in a FigCraft file, or before using any other figcraft skill.
 ---
 
 # figcraft-use
 
-FigCraft has no JavaScript execution tool like Figma's `use_figma`; for loops and conditions use `run_script` (Rhai, see figcraft-scripting). You work with about 54 tools; the generic ones are `create_node`, `set_properties`, `find_nodes`, `get_node`, `get_nodes`, `screenshot`, `batch` and `run_command`. Every menu item, panel action and shortcut is a command with an id (`node.set`, `layout.add`, `comment.reply`). Find ids with `list_commands`, run them with `run_command` or `batch`.
+FigCraft has no JavaScript execution tool like Figma's `use_figma`; for loops and conditions use `run_script` (Rhai, see figcraft-scripting). The server lists 67 tools (`figcraft-cli mcp --profile core` lists 21 plus `more_tools`, see Tool profiles); the generic ones are `create_node`, `set_properties`, `find_nodes`, `get_node`, `get_nodes`, `screenshot`, `batch` and `run_command`. Every menu item, panel action and shortcut is a command with an id (`node.set`, `layout.add`, `comment.reply`). Find ids with `list_commands`, run them with `run_command` or `batch`.
 
 ## When to use
 
@@ -16,7 +16,9 @@ Any read or write on a FigCraft document. The other figcraft skills assume you k
 | Need | Tool |
 |---|---|
 | Which commands exist | `list_commands {"filter": "layout.", "limit": 50, "offset": 0}` (default 400 per page; a note says how many are left) |
-| Orient in an unfamiliar file | `summarize_document` (counts, frames per page, headings, repeated families, within `budgetTokens`) |
+| Orient in an unfamiliar file | `summarize_document` (counts, frames per page, headings, repeated families, within `budgetTokens`); `design_system_index` for components, styles and variables with usage counts (figcraft-generate-library) |
+| What the user means by "this" | `get_selection_context` (selected layers, their parents with siblings, family twins, bound variables, open comments) |
+| Many layers or screens at once | figcraft-bulk-edits first |
 | One new layer | `create_node` |
 | Change layers | `set_properties` with `ids`, `where` or `list` |
 | Anything else (components, variables, styles, comments, pages) | `run_command {command, params}` |
@@ -88,6 +90,8 @@ The result is one `{id}` per step. In a batch the create command is `node.create
 
 Rollback, confirmed: a batch whose second step targets a missing layer fails with `step 1 (node.set): no such node 99999 (the whole batch was rolled back: nothing changed)`, and the rectangle created in step 0 does not exist afterwards. With `"onError":"continue"` the failing step is reported with `ok:false` and the others stay applied. `quiet: true` returns only `{ok, count, failures?}`.
 
+Two more batch features (details and runs in figcraft-bulk-edits). A step `{"assert":{"contrast":{"root":2}}}` checks the document after the earlier steps and rolls the whole batch back when it is false (kinds: `noOverflow`, `noOverlap`, `contrast`, `count`, `exists`, `none`). `"preview":true` runs the batch, returns the `diff` of what it would change, and rolls it back.
+
 ## Undo, history, checkpoints
 
 - `undo` and `redo` step through history. One batch is one undo step.
@@ -113,6 +117,14 @@ After every write:
 3. `screenshot {"ids":[4],"scale":0.5}` of the frame you changed, not the whole page.
 4. For text, `check_contrast {}` returns `{checked, passed, failures}`.
 
+## Tool profiles
+
+`figcraft-cli mcp --profile core` (or `FIGCRAFT_MCP_PROFILE=core`; the flag wins, the default is `full`) lists 21 tools with short descriptions, plus `more_tools`. Calling a hidden tool is an error that says how to enable it ("tool check_contrast is hidden in the core profile ..."). `more_tools {"filter":"text"}` lists the hidden ones, one line each. Most hidden tools are also engine commands, so `run_command` still reaches them (`lint.layout` ran in the core profile). The profile is set when the server starts; the skills name tools as in `full`.
+
+## Write guards
+
+Every write tool takes `maxAffected` (default 200 layers; a bigger change is refused until you narrow it or pass `confirm: true`) and `as` (an owner label, for layers locked with `lock.set`). `scope.set` fences the agent to chosen layers. See figcraft-bulk-edits.
+
 ## Stale reads: rev and ifRev
 
 `get_node`, `inspect_document`, `find_nodes` and `get_selection` put a `rev` at the top of their result. Pass it back as `ifRev` on `set_properties`, `run_command`, `batch`, `create_node`, `propagate_change` or `run_script`. If anything changed the document since (you, the user, another agent, even undo), nothing is applied and the error reads `stale: you read revision 1, the document is at 2 (1 command since); nothing was changed. latest undo steps ...`. Re-read and retry. A successful guarded `set_properties` returns the new `rev` to chain the next write. The counter also moves on selection and view commands, so a stale error can be a false alarm; it never lets a stale write through. `ifRev` cannot be combined with `documents`.
@@ -124,4 +136,4 @@ After every write:
 - `screenshot` takes `ids`, not `where`. Resolve ids with `find_nodes` first.
 - A bad value fails the call and changes nothing: `node.set` with `x: "bad"` returns `x must be a number`.
 - With no FigCraft window running the server is headless: `diagnostics` shows `attached: false` and edits live in memory until you save (figcraft-files).
-- Loops and conditions need `run_script` (figcraft-scripting); a fixed list of steps is a `batch`. `batch` has no loops: repeat structure with `edit.duplicate` and `node.adjust`.
+- Loops and conditions need `run_script` (figcraft-scripting), or `command.each` for one command over many layers (figcraft-bulk-edits); a fixed list of steps is a `batch`. `batch` has no loops: repeat structure with `edit.duplicate` and `node.adjust`.
