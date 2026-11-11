@@ -1,0 +1,16 @@
+{
+  "name": "opencode-figcraft",
+  "version": "0.3.0",
+  "description": "FigCraft for OpenCode: registers the FigCraft MCP server and the FigCraft design skills.",
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "private": true,
+  "repository": "github:NourEldinShobier/figcraft-plugin",
+  "exports": {
+    ".": "./opencode/index.js"
+  },
+  "files": [
+    "opencode",
+    "skills"
+  ]
+}

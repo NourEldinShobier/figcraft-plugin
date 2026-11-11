@@ -4,12 +4,13 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const skillsDir = join(root, "skills");
+const skillDirs = [join(root, "skills"), join(root, "opencode", "skills")];
 const emoji = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}\u{2B55}\u{FE0F}]/u;
 const rows = [];
 let failed = false;
 
-for (const name of readdirSync(skillsDir).sort()) {
+const entries = skillDirs.filter((d) => existsSync(d)).flatMap((d) => readdirSync(d).sort().map((n) => [d, n]));
+for (const [skillsDir, name] of entries) {
   const dir = join(skillsDir, name);
   if (!statSync(dir).isDirectory()) continue;
   const errs = [];
@@ -47,7 +48,7 @@ for (const name of readdirSync(skillsDir).sort()) {
     }
     for (const r of new Set(text.match(/\bfigcraft-[a-z-]+\b/g) || [])) {
       if (["figcraft-cli","figcraft-server"].includes(r) || r === "figcraft-plugin" || r === "figcraft-plugin.json") continue;
-      if (/^figcraft-[a-z-]+$/.test(r) && !existsSync(join(skillsDir, r)) && !/^figcraft-(cli|plugin)/.test(r) && !/^figcraft-connect/.test(r))
+      if (/^figcraft-[a-z-]+$/.test(r) && !skillDirs.some((d) => existsSync(join(d, r))) && !/^figcraft-(cli|plugin)/.test(r) && !/^figcraft-connect/.test(r))
         errs.push(`unknown skill ref ${r}`);
     }
   }

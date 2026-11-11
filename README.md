@@ -1,4 +1,4 @@
-# FigCraft plugin for Claude Code
+# FigCraft plugin for Claude Code and OpenCode
 
 Eighteen skills that teach an AI agent to design with [FigCraft](https://github.com/NourEldinShobier/figcraft) through its MCP server: build screens and design systems, carry a change to the same element on every screen, audit tokens and contrast, link components to code, and more.
 
@@ -45,6 +45,27 @@ Skills refer to tools by bare name (`find_similar`, `run_command`), so they work
 | `figcraft-plugins` | Write, import and run FigCraft plugins |
 | `figcraft-scripting` | Loops, conditions and bulk edits with `run_script`, one undo step, rolled back on error |
 | `figcraft-import-html` | Turn static HTML and CSS into auto layout layers, with warnings for what is dropped |
+
+## OpenCode
+
+The same skills and the FigCraft MCP server also install into [OpenCode](https://opencode.ai) 2 from this repository. Add it to your OpenCode config (`~/.config/opencode/opencode.json`):
+
+```json
+{ "plugins": ["github:NourEldinShobier/figcraft-plugin"] }
+```
+
+or run `opencode plugin add github:NourEldinShobier/figcraft-plugin`. For a local clone use its folder path instead (`"plugins": ["D:/path/to/figcraft-plugin"]`).
+
+The plugin (in `opencode/`) registers an MCP server named `figcraft` that runs `figcraft-cli mcp` and every skill under `skills/`, plus `figcraft-opencode`, a short skill about OpenCode tool names (`figcraft_find_similar`). Options, given as `{"package": "...", "options": {...}}`:
+
+| Option | Meaning |
+|---|---|
+| `command` | Path to `figcraft-cli`, or a full command array. Default: `FIGCRAFT_CLI`, then `%LOCALAPPDATA%\Programs\FigCraft\figcraft-cli.exe`, then `figcraft-cli` on PATH |
+| `environment` | Extra environment variables for the server |
+| `mcp` | `false` skips the MCP server |
+| `skills` | `false` skips the skills |
+
+An MCP server called `figcraft` that you configured yourself is left alone. Check with `opencode api GET /api/skill` and `opencode api GET /api/mcp`.
 
 ## Develop
 

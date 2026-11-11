@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 (2026-11-11)
+
+- OpenCode: the repository is also an OpenCode 2 plugin (`opencode/`, root `package.json`). It registers the `figcraft` MCP server and all skills, plus the OpenCode-only skill `figcraft-opencode`. Install with `opencode plugin add github:NourEldinShobier/figcraft-plugin`.
+- `scripts/check.mjs` also checks the OpenCode-only skills.
+
 ## 0.2.0 (2026-11-08)
 
 - New skills: `figcraft-scripting` (`run_script`) and `figcraft-import-html` (`import_html`). The plugin now has 18 skills.
